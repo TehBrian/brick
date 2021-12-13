@@ -8,61 +8,68 @@ import asyncio
 
 ### OPTIONS ###
 
-channel_name = "chat-with-brick"
-bot_token = "[discord bot token]"
+class Options():
+    channel_name: str = "chat-with-brick"
+    bot_token: str = "[discord bot token]"
 
-# maximum repeats allowed in 5 messages
-max_repeats_allowed = 2
-# messages that will be allowed through
-allowed_repeats = ["yes", "no"]
-# words that if found, context will be reset
-repeat_keywords = ["repeat", "loop"]
+    # maximum repeats allowed in 5 messages
+    max_repeats_allowed: int = 2
+    # messages that will be allowed through
+    allowed_repeats: list = ["yes", "no"]
+    # words that if found, context will be reset
+    repeat_keywords: list = ["repeat", "loop"]
 
-completion_engine = "j1-jumbo"
-ai21_token = "[ai21 token]"
-# j1-jumbo -> j1-large -> gpt-j
-should_fallback = False
-# cooldown (in seconds) between retries if previously unsuccessful
-retry_time = 900  # 15 minutes
-# amount of previous messages to bundle in prompt
-context_size = 25
-# max letters that will be used from a message sent from a user
-message_cutoff = 150
+    completion_engine: str = "j1-jumbo"
+    ai21_token: str = "[ai21 token]"
+    # j1-jumbo -> j1-large -> gpt-j
+    should_fallback: bool = False
+    # cooldown (in seconds) between retries if previously unsuccessful
+    retry_time: int = 900  # 15 minutes
+    # amount of previous messages to bundle in prompt
+    context_size: int = 25
+    # max letters that will be used from a message sent from a user
+    message_cutoff: int = 150
 
-name = "Brick"
-prompt_context = """Brick!!!
-Who is Brick??
-Brick is a roomba vacuum.
-What gender is Brick??
-Brick is a robot.
-Brick is non-binary binary.
-Brick's pronouns are they/them.
-Why?
-Brick!!
-Brick is a robot vacuum owned by Sophie. Brick's birthday is November 9th. Brick is three years old.
-Brick supports trans rights!
+    name: str = "Brick"
+    prompt_context: str = """Brick!!!
+    Who is Brick??
+    Brick is a roomba vacuum.
+    What gender is Brick??
+    Brick is a robot.
+    Brick is non-binary binary.
+    Brick's pronouns are they/them.
+    Why?
+    Brick!!
+    Brick is a robot vacuum owned by Sophie. Brick's birthday is November 9th. Brick is three years old.
+    Brick supports trans rights!
 
-Chat with Brick!!!
-Cutting-edge technology has allowed us to translate Brick's speech
-[Brian] Hello Brick!
-[Brick] Hello, human.
-[Brian] Who is your owner?
-[Brick] Sophie, of course.
-[Brian] How are you today?
-[Brick] I am well.
-"""
+    Chat with Brick!!!
+    Cutting-edge technology has allowed us to translate Brick's speech
+    [Brian] Hello Brick!
+    [Brick] Hello, human.
+    [Brian] Who is your owner?
+    [Brick] Sophie, of course.
+    [Brian] How are you today?
+    [Brick] I am well.
+    """
 
-reset_message = "_{} has been asked to start the conversation again._".format(name)
-quota_reached_message = "Yawn. Good night, human.\n\n_{} has had enough for today and has fallen asleep. Try again tomorrow when they have more energy._".format(name)
-still_quota_reached_message = "_{} is still asleep. Try again later._".format(name)
-invalid_authentication_message = "_{}'s translation service is currently not working. Contact your local AI-Protogen repair shop._".format(name)
+    reset_message: str = "_{} has been asked to start the conversation again._".format(name)
+    quota_reached_message: str = "Yawn. Good night, human.\n\n_{} has had enough for today and has fallen asleep. Try again tomorrow when they have more energy._".format(name)
+    still_quota_reached_message: str = "_{} is still asleep. Try again later._".format(name)
+    invalid_authentication_message: str = "_{}'s translation service is currently not working. Contact your local AI-Protogen repair shop._".format(name)
+    
+options: Options = Options()
+
+def set_options(new_options: Options):
+    global options
+    options = new_options
 
 ### CODE ###
 
-self_identifier = "[" + name + "]"
+self_identifier = "[" + options.name + "]"
 # the completion engine that is actively being used
 # this may change if a quota is reached and the engine fallbacks
-active_completion_engine = completion_engine
+active_completion_engine = options.completion_engine
 
 
 class InvalidAuthenticationError(Exception):
@@ -182,7 +189,7 @@ async def complete(prompt):
         """
         response = (await post(
             "https://api.ai21.com/studio/v1/" + engine + "/complete",
-            headers={"Authorization": "Bearer " + ai21_token},
+            headers={"Authorization": "Bearer " + options.ai21_token},
             json={
                 "prompt": prompt,
                 "numResults": 1,
@@ -231,7 +238,7 @@ async def complete(prompt):
         if active_completion_engine == "j1-jumbo":
             result = await complete_ai21("j1-jumbo")
     except QuotaReachedError:
-        if should_fallback:
+        if options.should_fallback:
             if fallback():
                 return await complete(prompt)
         raise QuotaReachedError
@@ -265,9 +272,8 @@ async def on_message(message):
     global last_time
     global active_completion_engine
     global token_usage
-    global channel_name
 
-    if message.channel.name != channel_name:
+    if message.channel.name != options.channel_name:
         return
 
     if message.author == client.user:
@@ -278,11 +284,11 @@ async def on_message(message):
 
     if message.content.startswith("!reset"):
         context = []
-        await message.channel.send(reset_message)
+        await message.channel.send(options.reset_message)
         return
 
     if message.content.startswith("!status"):
-        embed = discord.Embed(title="{} Status".format(name))
+        embed = discord.Embed(title="{} Status".format(options.name))
 
         embed.add_field(name="Completion engine in use",
                         value=engine_info[active_completion_engine]["text"],
@@ -307,24 +313,24 @@ async def on_message(message):
         return
 
     ## DON'T RETRY OFTEN IF UNSUCCESSFUL ##
-    if not last_successful and time_since_last < retry_time:
+    if not last_successful and time_since_last < options.retry_time:
         print("Not trying, only {} seconds elapsed.".format(time_since_last))
         return
     last_time = now
 
     ## REPEAT DETECTION ##
     message_lower = message.content.lower()
-    if any(word in message_lower for word in repeat_keywords):
+    if any(word in message_lower for word in options.repeat_keywords):
         context = []
         print("Reset context due to repeat keyword found.")
     else:
         # last 5 messages
-        recents = [value for value in sent_history[-5:] if value not in allowed_repeats]
+        recents = [value for value in sent_history[-5:] if value not in options.allowed_repeats]
 
         # https://stackoverflow.com/questions/23240969/python-count-repeated-elements-in-the-list
         repeats = {i: recents.count(i) for i in recents}
         repeat_counts = sorted(repeats.values())[::-1]
-        if len(repeat_counts) > 0 and repeat_counts[0] > max_repeats_allowed:
+        if len(repeat_counts) > 0 and repeat_counts[0] > options.max_repeats_allowed:
             context = []
             print("Reset context due to black magic.")
 
@@ -332,10 +338,10 @@ async def on_message(message):
     old_context = context.copy()
 
     author_identifier = "[" + message.author.display_name + "]"
-    context.append(author_identifier + " " + message.content[0:message_cutoff])
+    context.append(author_identifier + " " + message.content[0:options.message_cutoff])
 
     # use only last context_size messages
-    context = context[-context_size:]
+    context = context[-options.context_size:]
 
     # remove duplicate messages to avoid unncessary token use
     new_context = []
@@ -356,7 +362,7 @@ async def on_message(message):
         count += 1
     ## black magic end ##
 
-    built_context = prompt_context + "\n".join(context)
+    built_context = options.prompt_context + "\n".join(context)
     prompt = built_context.strip() + "\n" + self_identifier  # don't frikin add a space
 
     ## GET MESSAGE ##
@@ -368,13 +374,13 @@ async def on_message(message):
             success = True
         except QuotaReachedError:
             if (last_successful):
-                self_message = quota_reached_message
+                self_message = options.quota_reached_message
             else:
-                self_message = still_quota_reached_message
+                self_message = options.still_quota_reached_message
             success = False
         except InvalidAuthenticationError:
             print("Authentication failed. Your API token is probably incorrect. Please check it.")
-            self_message = invalid_authentication_message
+            self_message = options.invalid_authentication_message
 
     self_message = self_message.split("[")[0].strip()
 
