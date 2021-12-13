@@ -1,0 +1,5 @@
+.vscode
+__pycache__
+bot.py
+token-usage.json
+.DS_Store
