@@ -403,4 +403,5 @@ async def on_message(message):
     last_successful = success
 
 
-client.run(bot_token)
+def run():
+    client.run(options.bot_token)
