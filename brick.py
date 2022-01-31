@@ -64,10 +64,17 @@ options: Options = Options()
 def set_options(new_options: Options):
     global options
     options = new_options
+    set_self_identifier()
+
+
+def set_self_identifier():
+    global self_identifier
+    self_identifier = "[" + options.name + "]"
 
 
 ### CODE ###
-self_identifier = "[" + options.name + "]"
+self_identifier = ""
+set_self_identifier()
 # the completion engine that is actively being used
 # this may change if a quota is reached and the engine fallbacks
 active_completion_engine = options.completion_engine
