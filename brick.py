@@ -6,7 +6,6 @@ import json
 import traceback
 import asyncio
 
-### OPTIONS ###
 
 class Options():
     channel_name: str = "chat-with-brick"
@@ -57,15 +56,17 @@ class Options():
     quota_reached_message: str = "Yawn. Good night, human.\n\n_{} has had enough for today and has fallen asleep. Try again tomorrow when they have more energy._".format(name)
     still_quota_reached_message: str = "_{} is still asleep. Try again later._".format(name)
     invalid_authentication_message: str = "_{}'s translation service is currently not working. Contact your local AI-Protogen repair shop._".format(name)
-    
+
+
 options: Options = Options()
+
 
 def set_options(new_options: Options):
     global options
     options = new_options
 
-### CODE ###
 
+### CODE ###
 self_identifier = "[" + options.name + "]"
 # the completion engine that is actively being used
 # this may change if a quota is reached and the engine fallbacks
