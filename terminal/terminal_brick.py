@@ -3,7 +3,6 @@ import requests
 import time
 import json
 import traceback
-import asyncio
 
 
 class Options():
